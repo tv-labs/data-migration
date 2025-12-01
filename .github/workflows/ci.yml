@@ -40,7 +40,7 @@ jobs:
           SA_PASSWORD: StrongPassword!
         ports:
           - 11433:1433
-        options: --health-cmd="-S localhost -U sa -P 'StrongPassword!' -Q 'SELECT 1' || exit 1" --health-interval 10s --health-retries 10 --health-timeout 5s --health-start-period 10s
+        options: --health-cmd="-S localhost -U sa -P 'StrongPassword!' -Q 'SELECT 1' || exit 1" --health-interval 10s --health-retries 20 --health-timeout 5s --health-start-period 10s
 
     steps:
       - uses: actions/checkout@v4
