@@ -1,31 +1,9 @@
 defmodule DataMigration.LiveDashboard.Page do
-  @moduledoc """
-  The page to view data migrations.
-
-  For example, in your Phoenix router:
-
-    live_dashboard "/my/admin/dashboard",
-      # must have `allow_destructive_actions: true` in order to run data migrations
-      # otherwise it will be view-only to see the status
-      allow_destructive_actions: true,
-      # Provide the page with Repo and migration folders config
-      additional_pages: [
-        # so the route becomes "/my/admin/dashboard/data_migrations"
-        data_migrations: {
-          DataMigration.LiveDashboard.Page,
-          {MyApp.PubSub, %{MyApp.Repo => ["data_migrations"]}, options}
-          # These paths will be passed into `Ecto.Migrator.migrations_path(repo, path)`
-          # `options` is optional; you may supply 2 item tuple instead to omit options
-        }
-      ]
-
-  Options you may supply to the page:
-
-  - `:topic` a different PubSub topic to listen to for capturing migration logs.
-  - `:listen_for_logs` A list of MFAs (tuple of length 1, 2, or 3) for which the page to listen for logs.
-      You can also supply a module namespace, eg, `MyApp.DataMigration` and any module under that namespace
-      will have its logs listened to, eg `MyApp.DataMigration.FooBar`
-  """
+  @external_resource "README.md"
+  @moduledoc "README.md"
+             |> File.read!()
+             |> String.split("<!-- MDOC !-->")
+             |> Enum.fetch!(1)
 
   use Phoenix.LiveDashboard.PageBuilder
 
@@ -238,7 +216,7 @@ defmodule DataMigration.LiveDashboard.Page do
   attr(:stream, :any, required: true)
   attr(:logs_present, :boolean, default: false)
 
-  def event_logs(assigns) do
+  defp event_logs(assigns) do
     ~H"""
     <div :if={@logs_present}>
       <style>

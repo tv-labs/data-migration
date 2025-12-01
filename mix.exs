@@ -20,9 +20,10 @@ defmodule DataMigration.MixProject do
         }
       ],
       docs: [
-        main: "KQL",
+        main: "DataMigration.LiveDashboard.Page",
         source_ref: @version,
         source_url: @source_url,
+        assets: %{"assets" => "assets"},
         extras: ["CHANGELOG.md"]
       ],
       deps: deps(),
