@@ -40,16 +40,16 @@ services:
     container_name: data_migration_mssql
     image: mcr.microsoft.com/mssql/server:2019-latest
     environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=${Sa_Password:-StrongPassword!}
-      - MSSQL_PID=Developer
+      ACCEPT_EULA: Y
+      SA_PASSWORD: StrongPassword!
+      MSSQL_PID: Developer
     ports:
       - 11433:1433
     volumes:
       - sqlserver_data:/var/opt/mssql
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P ${Sa_Password:-StrongPassword!} -Q 'SELECT 1' || exit 1"]
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'StrongPassword!' -Q 'SELECT 1' || exit 1"]
       interval: 10s
       retries: 10
       start_period: 10s
