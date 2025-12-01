@@ -1,0 +1,56 @@
+volumes:
+  mysql_data:
+  postgres_data:
+  sqlserver_data:
+
+services:
+  postgres:
+    container_name: data_migration_pg
+    image: postgres:18
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: data_migration_test
+      TZ: UTC
+    ports:
+      - 15435:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+  mysql:
+    container_name: data_migration_mysql
+    image: mysql:8
+    environment:
+      MYSQL_DATABASE: data_migration_test
+      MYSQL_USER: mysql
+      MYSQL_PASSWORD: mysql
+      MYSQL_ROOT_PASSWORD: mysql
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - 13306:3306
+    healthcheck:
+      test: --health-cmd="mysqladmin ping" --health-interval 10s --health-timeout 5s --health-retries 5
+      interval: 10s
+      retries: 10
+      start_period: 10s
+      timeout: 3s
+
+  sqlserver:
+    container_name: data_migration_mssql
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=${Sa_Password:-StrongPassword!}
+      - MSSQL_PID=Developer
+    ports:
+      - 11433:1433
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P ${Sa_Password:-StrongPassword!} -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      retries: 10
+      start_period: 10s
+      timeout: 3s
