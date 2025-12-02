@@ -1,5 +1,5 @@
 defmodule DataMigration do
   @moduledoc """
-  Documentation for `DataMigration`.
+  See `DataMigration.LiveDashboard.Page`
   """
 end

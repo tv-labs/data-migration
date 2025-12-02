@@ -1,21 +1,34 @@
 defmodule DataMigration.MixProject do
   use Mix.Project
-
+  @version "0.1.0"
+  @source_url "https://github.com/tv-labs/data-migration"
   @adapters ~w[pg myxql tds sqlite]
 
   def project do
     [
       app: :data_migration,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
+      description: "Manage Data Migrations with Ecto and Phoenix LiveDashboard",
+      package: [
+        licenses: ["Apache-2.0"],
+        links: %{
+          "GitHub" => @source_url,
+          "Changelog" => "https://github.com/tv-labs/data-migration/blob/#{@version}/CHANGELOG.md"
+        }
+      ],
+      docs: [
+        main: "DataMigration.LiveDashboard.Page",
+        source_ref: @version,
+        source_url: @source_url,
+        assets: %{"assets" => "assets"},
+        extras: ["CHANGELOG.md"]
+      ],
       deps: deps(),
       preferred_cli_env: ["test.all": :test, "test.adapters": :test],
-      aliases: [
-        "test.all": ["test.adapters"],
-        "test.adapters": &test_adapters/1
-      ]
+      aliases: aliases()
     ]
   end
 
@@ -41,7 +54,10 @@ defmodule DataMigration.MixProject do
       {:tds, "~> 2.2", optional: true},
 
       # Dev/Test
-      {:lazy_html, "~> 0.1", only: [:test]}
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false, warn_if_outdated: true},
+      {:tidewave, "~> 0.4", only: :dev},
+      {:lazy_html, "~> 0.1", only: [:test]},
+      {:bandit, "~> 1.0", only: :dev}
     ]
   end
 
@@ -70,5 +86,13 @@ defmodule DataMigration.MixProject do
       {_, result} when result > 0 -> System.at_exit(fn _ -> exit({:shutdown, 1}) end)
       _ -> :ok
     end
+  end
+
+  defp aliases do
+    [
+      "test.all": &test_adapters/1,
+      tidewave:
+        "run --no-halt -e 'Agent.start(fn -> Bandit.start_link(plug: Tidewave, port: 4011) end)'"
+    ]
   end
 end

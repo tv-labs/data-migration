@@ -1,15 +1,20 @@
 defmodule DataMigration.Logger do
-  @moduledoc """
-  A logger backend that will capture logs from Ecto migrations.
-  This is destined for the Phoenix LiveView Dashboard
-  data migration page for monitoring results when the data migration is ran.
-  """
+  @moduledoc false
 
   # This is a copy of https://github.com/phoenixframework/phoenix_live_dashboard/blob/fab5e4f5c1c5d7aa5a3960878e2aa5e06f6753d9/lib/phoenix/live_dashboard/logger_pubsub_backend.ex
   # but modified to capture `Ecto.Migration.Runner` logs
 
   @behaviour :gen_event
   @behaviour :logger_handler
+
+  otp_release = :erlang.system_info(:otp_release) |> to_string() |> String.to_integer()
+
+  if otp_release < 27 do
+    raise """
+    DataMigration must have :logger APIs available from OTP release 27 or later.
+    Detected running OTP #{otp_release}
+    """
+  end
 
   # API
 
