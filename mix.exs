@@ -28,7 +28,11 @@ defmodule DataMigration.MixProject do
       ],
       deps: deps(),
       preferred_cli_env: ["test.all": :test, "test.adapters": :test],
-      aliases: aliases()
+      aliases: aliases(),
+      dialyzer: [
+        plt_add_apps: [:ex_unit, :mix],
+        plt_file: {:no_warn, "priv/plts/data_migration.plt"}
+      ]
     ]
   end
 
@@ -48,16 +52,17 @@ defmodule DataMigration.MixProject do
       {:phoenix_pubsub, "~> 2.1"},
 
       # Adapters for testing
-      {:postgrex, "~> 0.19 or ~> 1.0", optional: true},
-      {:myxql, "~> 0.8", optional: true},
       {:ecto_sqlite3, "~> 0.17", optional: true},
+      {:myxql, "~> 0.8", optional: true},
+      {:postgrex, "~> 0.19 or ~> 1.0", optional: true},
       {:tds, "~> 2.2", optional: true},
 
       # Dev/Test
-      {:ex_doc, "~> 0.34", only: :dev, runtime: false, warn_if_outdated: true},
-      {:tidewave, "~> 0.4", only: :dev},
+      {:bandit, "~> 1.0", only: [:dev]},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.34", only: [:dev], runtime: false, warn_if_outdated: true},
       {:lazy_html, "~> 0.1", only: [:test]},
-      {:bandit, "~> 1.0", only: :dev}
+      {:tidewave, "~> 0.4", only: [:dev]}
     ]
   end
 

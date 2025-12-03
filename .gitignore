@@ -24,3 +24,6 @@ data_migration_live_dashboard-*.tar
 
 *.db
 *.db-*
+
+# Dialyzer PLTs
+priv/plts/
