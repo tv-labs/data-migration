@@ -62,9 +62,48 @@ jobs:
           elixir-version: '1.18'
           otp-version: '27'
       - run: rm mix.lock && mix deps.get --only test
-      - run: mix compile --force --warnings-as-errors
+
+      - name: mix compile
+        id: compile
+        run: mix compile --force --warnings-as-errors
+
       - run: mix format --check-formatted
       - run: ECTO_ADAPTER=sqlite mix test --warnings-as-errors
       - run: ECTO_ADAPTER=pg mix test --warnings-as-errors
       - run: ECTO_ADAPTER=myxql mix test --warnings-as-errors
       - run: ECTO_ADAPTER=tds mix test --warnings-as-errors
+
+      - name: Restore PLTs
+        uses: actions/cache/restore@v4
+        id: restore-plts
+        if: ${{ steps.compile.outcome == 'success' && !contains(github.event.*.labels.*.name, 'no-cache') }}
+        env:
+          cache-version: &cache-version v1
+          cache-name: plt_cache
+        with:
+          path: &cache-plts-paths |
+            priv/plts
+          key: &cache-plts-key plt-${{ env.cache-version }}-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ env.cache-name }}-${{ hashFiles('mix.lock') }}-${{ hashFiles('*.ex') }}
+          restore-keys: |
+            plt-${{ env.cache-version }}-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ env.cache-name }}-${{ hashFiles('mix.lock') }}-
+            plt-${{ env.cache-version }}-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ env.cache-name }}-
+            plt-${{ env.cache-version }}-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
+
+      - name: Create PLTs
+        id: create-plts
+        if: ${{ steps.restore-plts.outputs.cache-hit != 'true' }}
+        run: mix dialyzer --plt
+
+      - name: Cache PLTs
+        uses: actions/cache/save@v4
+        if: ${{ steps.create-plts.outcome == 'success' }}
+        env:
+          cache-version: *cache-version
+          cache-name: plt_cache
+        with:
+          path: *cache-plts-paths
+          key: *cache-plts-key
+
+      - name: Run Dialyzer
+        id: dialyzer
+        run: mix dialyzer
