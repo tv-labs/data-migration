@@ -410,26 +410,34 @@ defmodule DataMigration.LiveDashboard.Page do
      |> stream_insert(:logs, {message, level})}
   end
 
-  defp maybe_recompile([]), do: []
+  defp maybe_recompile(migrations) when map_size(migrations) == 0, do: migrations
 
   if Mix.env() == :dev do
     defp maybe_recompile(migrations) do
-      Enum.each(migrations, fn migration ->
+      Enum.each(migrations, fn {_key, migration} ->
         Code.unrequire_files([migration.file])
         :code.soft_purge(migration.module)
       end)
 
-      []
+      %{}
     end
   else
     defp maybe_recompile(migrations), do: migrations
   end
 
   defp compile_file(file, folder) do
-    # Silence "redefining module ..." logs
+    # `Code.require_file/2` is idempotent VM-wide (not per-process): once
+    # any process on this node has required a given path, every later call
+    # — including from a completely unrelated LiveView session — gets `nil`
+    # back instead of the compiled module list. Downstream code treats
+    # `nil` as "this file failed to compile" and silently drops the
+    # migration, so a second concurrent viewer of this page can see an
+    # incomplete list. `Code.compile_file/2` always recompiles and always
+    # returns the module list; silence the resulting "redefining module"
+    # diagnostic instead.
     {result, _} =
       Code.with_diagnostics(fn ->
-        Code.require_file(file, folder)
+        Code.compile_file(file, folder)
       end)
 
     result
@@ -462,11 +470,18 @@ defmodule DataMigration.LiveDashboard.Page do
     end)
   end
 
+  # Keyed by {repo, folder, id} so a repeat call always *replaces* an
+  # entry rather than appending beside it. `:persistent_term` is
+  # process-independent (shared by every LiveView session on this node),
+  # so without this a stale entry from an earlier call — including one
+  # computed before the most recent migrate up/down — sits in the cache
+  # forever alongside the fresh one, and callers reading through
+  # `find_migration/4` or the table's row count can see it.
   @cache_key :data_migration_list
   defp list_data_migrations(locations) do
-    existing = @cache_key |> :persistent_term.get([]) |> maybe_recompile()
+    existing = @cache_key |> :persistent_term.get(%{}) |> maybe_recompile()
 
-    migrations =
+    migrations_by_key =
       Enum.reduce(locations, existing, fn {repo, folders}, acc ->
         Enum.reduce(List.wrap(folders), acc, fn folder, data_migration_acc ->
           abs_dir = Ecto.Migrator.migrations_path(repo, folder)
@@ -481,23 +496,23 @@ defmodule DataMigration.LiveDashboard.Page do
               {status, id, _name}, acc -> Map.put(acc, id, status)
             end)
 
-          data_migrations =
-            [abs_dir, "*.exs"]
-            |> Path.join()
-            |> Path.wildcard()
-            |> Enum.flat_map(fn file ->
-              case compile_file(file, abs_dir) do
-                nil -> []
-                compiled -> to_migration(file, rel_path, repo, compiled, statuses)
-              end
-            end)
-
-          data_migrations ++ data_migration_acc
+          [abs_dir, "*.exs"]
+          |> Path.join()
+          |> Path.wildcard()
+          |> Enum.flat_map(fn file ->
+            case compile_file(file, abs_dir) do
+              nil -> []
+              compiled -> to_migration(file, rel_path, repo, compiled, statuses)
+            end
+          end)
+          |> Enum.reduce(data_migration_acc, fn migration, acc ->
+            Map.put(acc, {migration.repo, migration.folder, migration.id}, migration)
+          end)
         end)
       end)
 
-    :persistent_term.put(@cache_key, migrations)
-    migrations
+    :persistent_term.put(@cache_key, migrations_by_key)
+    Map.values(migrations_by_key)
   end
 
   # Skipped because this is a compile-controlled list of files not from user input
