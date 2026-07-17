@@ -426,15 +426,9 @@ defmodule DataMigration.LiveDashboard.Page do
   end
 
   defp compile_file(file, folder) do
-    # `Code.require_file/2` is idempotent VM-wide (not per-process): once
-    # any process on this node has required a given path, every later call
-    # — including from a completely unrelated LiveView session — gets `nil`
-    # back instead of the compiled module list. Downstream code treats
-    # `nil` as "this file failed to compile" and silently drops the
-    # migration, so a second concurrent viewer of this page can see an
-    # incomplete list. `Code.compile_file/2` always recompiles and always
-    # returns the module list; silence the resulting "redefining module"
-    # diagnostic instead.
+    # Code.require_file/2 is idempotent VM-wide, not per-process, so a
+    # second caller gets nil back instead of the module list. Use
+    # compile_file/2 instead and silence the "redefining module" diagnostic.
     {result, _} =
       Code.with_diagnostics(fn ->
         Code.compile_file(file, folder)
@@ -470,13 +464,9 @@ defmodule DataMigration.LiveDashboard.Page do
     end)
   end
 
-  # Keyed by {repo, folder, id} so a repeat call always *replaces* an
-  # entry rather than appending beside it. `:persistent_term` is
-  # process-independent (shared by every LiveView session on this node),
-  # so without this a stale entry from an earlier call — including one
-  # computed before the most recent migrate up/down — sits in the cache
-  # forever alongside the fresh one, and callers reading through
-  # `find_migration/4` or the table's row count can see it.
+  # Keyed by {repo, folder, id} so a repeat call replaces a stale cached
+  # entry instead of appending beside it (the persistent_term cache is
+  # shared across all LiveView sessions on the node).
   @cache_key :data_migration_list
   defp list_data_migrations(locations) do
     existing = @cache_key |> :persistent_term.get(%{}) |> maybe_recompile()

@@ -63,10 +63,8 @@ defmodule DataMigration.LiveDashboard.PageTest do
 
     test "a fresh mount reflects the true status after a migration ran, with no duplicate rows",
          %{route: route, conn: conn, repo: repo} do
-      # `route` is the short config key (e.g. "data_migrations_sqlite").
-      # `folder`, below, is what the library itself stores on each
-      # migration (the path relative to the app dir) — that's what the UI
-      # actually sends back via `phx-value-folder`, not the short key.
+      # `folder` (unlike `route`) must match what the UI sends via
+      # phx-value-folder: the path relative to the app dir, not the config key.
       config_folder = Application.get_env(:data_migration, :mounted_at)
 
       folder =
@@ -100,19 +98,12 @@ defmodule DataMigration.LiveDashboard.PageTest do
 
       assert html =~ "up"
 
-      # Navigate back to the list and re-open the same migration — each of
-      # these calls `handle_params` -> `list_data_migrations/1` again, same
-      # as a real page reload would. It must keep reflecting the true
-      # status, and the list must not have accumulated a stale duplicate
-      # row for this migration (a second, unrelated LiveView session on
-      # this node calling `list_data_migrations/1` concurrently — e.g. the
-      # "mounts successfully" test above, sharing the same async run —
-      # could otherwise clobber the process-independent `:persistent_term`
-      # cache with a stale, pre-migration entry).
+      # Simulates a reload: re-enters list_data_migrations/1, which a
+      # concurrent session (e.g. the "mounts successfully" test above,
+      # same async run) could otherwise have clobbered with a stale entry.
       list_html = render_click(view, "navigate", %{"action" => "list"})
 
-      # Exactly one row for this migration in the list — a stale cached
-      # duplicate would show up as a second `phx-value-id` for the same id.
+      # A stale cached duplicate would show up as a second phx-value-id.
       assert list_html
              |> String.split(~s(phx-value-id="99999999999999"))
              |> length() == 2
