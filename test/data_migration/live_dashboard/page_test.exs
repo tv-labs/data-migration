@@ -126,8 +126,6 @@ defmodule DataMigration.LiveDashboard.PageTest do
 
       assert show_html =~ ~s(data-status="up")
       refute show_html =~ ~s(data-status="down")
-
-      Ecto.Migrator.down(repo, 99_999_999_999_999, DataMigration.Test.Fixtures.Noop)
     end
   end
 end
