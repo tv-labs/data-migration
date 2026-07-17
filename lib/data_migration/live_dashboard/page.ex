@@ -410,26 +410,28 @@ defmodule DataMigration.LiveDashboard.Page do
      |> stream_insert(:logs, {message, level})}
   end
 
-  defp maybe_recompile([]), do: []
+  defp maybe_recompile(migrations) when map_size(migrations) == 0, do: migrations
 
   if Mix.env() == :dev do
     defp maybe_recompile(migrations) do
-      Enum.each(migrations, fn migration ->
+      Enum.each(migrations, fn {_key, migration} ->
         Code.unrequire_files([migration.file])
         :code.soft_purge(migration.module)
       end)
 
-      []
+      %{}
     end
   else
     defp maybe_recompile(migrations), do: migrations
   end
 
   defp compile_file(file, folder) do
-    # Silence "redefining module ..." logs
+    # Code.require_file/2 is idempotent VM-wide, not per-process, so a
+    # second caller gets nil back instead of the module list. Use
+    # compile_file/2 instead and silence the "redefining module" diagnostic.
     {result, _} =
       Code.with_diagnostics(fn ->
-        Code.require_file(file, folder)
+        Code.compile_file(file, folder)
       end)
 
     result
@@ -462,11 +464,14 @@ defmodule DataMigration.LiveDashboard.Page do
     end)
   end
 
+  # Keyed by {repo, folder, id} so a repeat call replaces a stale cached
+  # entry instead of appending beside it (the persistent_term cache is
+  # shared across all LiveView sessions on the node).
   @cache_key :data_migration_list
   defp list_data_migrations(locations) do
-    existing = @cache_key |> :persistent_term.get([]) |> maybe_recompile()
+    existing = @cache_key |> :persistent_term.get(%{}) |> maybe_recompile()
 
-    migrations =
+    migrations_by_key =
       Enum.reduce(locations, existing, fn {repo, folders}, acc ->
         Enum.reduce(List.wrap(folders), acc, fn folder, data_migration_acc ->
           abs_dir = Ecto.Migrator.migrations_path(repo, folder)
@@ -481,23 +486,23 @@ defmodule DataMigration.LiveDashboard.Page do
               {status, id, _name}, acc -> Map.put(acc, id, status)
             end)
 
-          data_migrations =
-            [abs_dir, "*.exs"]
-            |> Path.join()
-            |> Path.wildcard()
-            |> Enum.flat_map(fn file ->
-              case compile_file(file, abs_dir) do
-                nil -> []
-                compiled -> to_migration(file, rel_path, repo, compiled, statuses)
-              end
-            end)
-
-          data_migrations ++ data_migration_acc
+          [abs_dir, "*.exs"]
+          |> Path.join()
+          |> Path.wildcard()
+          |> Enum.flat_map(fn file ->
+            case compile_file(file, abs_dir) do
+              nil -> []
+              compiled -> to_migration(file, rel_path, repo, compiled, statuses)
+            end
+          end)
+          |> Enum.reduce(data_migration_acc, fn migration, acc ->
+            Map.put(acc, {migration.repo, migration.folder, migration.id}, migration)
+          end)
         end)
       end)
 
-    :persistent_term.put(@cache_key, migrations)
-    migrations
+    :persistent_term.put(@cache_key, migrations_by_key)
+    Map.values(migrations_by_key)
   end
 
   # Skipped because this is a compile-controlled list of files not from user input
