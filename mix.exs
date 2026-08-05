@@ -27,13 +27,16 @@ defmodule DataMigration.MixProject do
         extras: ["CHANGELOG.md"]
       ],
       deps: deps(),
-      preferred_cli_env: ["test.all": :test, "test.adapters": :test],
       aliases: aliases(),
       dialyzer: [
         plt_add_apps: [:ex_unit, :mix],
         plt_file: {:no_warn, "priv/plts/data_migration.plt"}
       ]
     ]
+  end
+
+  def cli do
+    [preferred_envs: ["test.all": :test, "test.adapters": :test]]
   end
 
   # Run "mix help compile.app" to learn about applications.
