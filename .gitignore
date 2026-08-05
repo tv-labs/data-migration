@@ -17,7 +17,7 @@ erl_crash.dump
 *.ez
 
 # Ignore package tarball (built via "mix hex.build").
-data_migration_live_dashboard-*.tar
+data_migration-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/

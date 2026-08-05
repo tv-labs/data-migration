@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2 (2026-08-05)
+
+- Fixup Elixir 1.20 type warning
+
 ## 0.1.1 (2026-07-16)
 
 - Fix concurrent LiveView accumulating duplicate migrations over time.
