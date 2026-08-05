@@ -533,6 +533,8 @@ defmodule DataMigration.LiveDashboard.Page do
     end)
   end
 
+  # This is only ignored because of dialyzer also ignoring `DataMigration.Logger.add/4`
+  @dialyzer {:nowarn_function, update_status: 3}
   defp update_status(migrations, migration, status) do
     %{id: id, repo: repo, folder: folder} = migration
 
