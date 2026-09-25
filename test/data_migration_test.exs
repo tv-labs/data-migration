@@ -4,7 +4,10 @@ defmodule DataMigrationTest do
   # writer at a time, and every test here writes `schema_migrations`.
   use DataMigration.ConnCase, async: false
 
-  @opts [log: false]
+  # `skip_table_creation`: the migrator otherwise runs CREATE TABLE IF NOT EXISTS
+  # on `schema_migrations`, and MySQL commits the open transaction on any DDL,
+  # ending the test's sandbox. test_helper.exs creates the table up front.
+  @opts [log: false, skip_table_creation: true]
 
   setup do
     listener = :"data_migration_test_#{System.unique_integer([:positive])}"
