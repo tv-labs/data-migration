@@ -38,7 +38,8 @@ defmodule DataMigration.ConnCase do
   setup tags do
     test_repo = Application.get_env(:data_migration, :test_repo)
     route = Application.get_env(:data_migration, :mounted_at)
-    _pid = Sandbox.start_owner!(test_repo, shared: not tags[:async])
+    pid = Sandbox.start_owner!(test_repo, shared: not tags[:async])
+    on_exit(fn -> Sandbox.stop_owner(pid) end)
     conn = Phoenix.ConnTest.init_test_session(build_conn(), %{})
     locations = %{test_repo => [route]}
 

@@ -90,7 +90,12 @@ mix deps.get
    - Caches migration list in `:persistent_term` for performance
    - In dev mode, automatically recompiles migrations on each page load
 
-2. **DataMigration.Logger** (`lib/data_migration/logger.ex`)
+2. **DataMigration** (`lib/data_migration.ex`)
+   - `pending/2` lists the data migrations that have not run; `run/4` runs one by version
+   - `use DataMigration, repeatable: true` marks a data migration that `run/4` may run again;
+     anything else, including a plain `use Ecto.Migration`, is one-shot
+
+3. **DataMigration.Logger** (`lib/data_migration/logger.ex`)
    - Custom logger backend that captures Ecto migration logs
    - Implements both `:gen_event` (legacy) and `:logger_handler` (OTP 21+) behaviors
    - Filters logs by MFA (module/function/arity) patterns
