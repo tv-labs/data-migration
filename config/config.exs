@@ -16,6 +16,8 @@ if config_env() == :test do
   pool_size = max(10, System.schedulers_online() * 2)
   database = "data_migration_test"
 
+  # `migration_lock: false` on every repo: the lock holds the test's sandboxed
+  # connection while the migrator runs `up/0` from a task that needs it too.
   config :data_migration, Test.PGRepo,
     database: database,
     hostname: "localhost",
@@ -23,7 +25,8 @@ if config_env() == :test do
     username: "postgres",
     password: "postgres",
     pool_size: pool_size,
-    pool: Ecto.Adapters.SQL.Sandbox
+    pool: Ecto.Adapters.SQL.Sandbox,
+    migration_lock: false
 
   config :data_migration, Test.TDSRepo,
     database: database,
@@ -32,7 +35,8 @@ if config_env() == :test do
     username: "sa",
     password: "StrongPassword!",
     pool_size: pool_size,
-    pool: Ecto.Adapters.SQL.Sandbox
+    pool: Ecto.Adapters.SQL.Sandbox,
+    migration_lock: false
 
   config :data_migration, Test.MyXQLRepo,
     hostname: "localhost",
@@ -42,7 +46,8 @@ if config_env() == :test do
     password: "mysql",
     pool: Ecto.Adapters.SQL.Sandbox,
     pool_size: pool_size,
-    port: 13306
+    port: 13306,
+    migration_lock: false
 
   config :data_migration, Test.SQLiteRepo,
     pool: Ecto.Adapters.SQL.Sandbox,

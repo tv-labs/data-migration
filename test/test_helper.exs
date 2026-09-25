@@ -42,4 +42,9 @@ Supervisor.start_link(
 
 Ecto.Migration.SchemaMigration.ensure_schema_migrations_table!(repo, repo.config(), [])
 
+# Manual mode, so a process a test starts (a LiveView, the migrator's task) finds
+# the test's sandboxed connection through `$callers` instead of checking out one
+# of its own, whose writes would outlive the test.
+Ecto.Adapters.SQL.Sandbox.mode(repo, :manual)
+
 ExUnit.start()

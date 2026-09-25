@@ -42,6 +42,44 @@ Options you may supply to the page:
     the app will listen to `Ecto.Adapters.SQL`, Ecto.Migration.Runner, and `Ecto.Migrator` for logs.
 
 
+### Running data migrations by version
+
+`DataMigration.pending/2` lists the data migrations that have not run, oldest
+first, and `DataMigration.run/4` runs one by version, and no other:
+
+```elixir
+path = Ecto.Migrator.migrations_path(MyApp.Repo, "data_migrations")
+
+DataMigration.pending(MyApp.Repo, path)
+#=> [{20260101120000, "mirror_avatars"}]
+
+DataMigration.run(MyApp.Repo, 20260101120000, path)
+#=> :ok
+```
+
+`run/4` runs nothing and returns `{:error, :not_found}` for a version no file
+has, and `{:error, :already_applied}` for a one-shot data migration that has
+run.
+
+### One-shot and repeatable data migrations
+
+A data migration is one-shot unless it says otherwise. Mark one that is safe to
+run again with `use DataMigration, repeatable: true` in place of
+`use Ecto.Migration`:
+
+```elixir
+defmodule MyApp.Repo.DataMigrations.MirrorAvatars do
+  use DataMigration, repeatable: true
+
+  def up, do: MyApp.Avatars.mirror_all()
+  def down, do: :ok
+end
+```
+
+Either kind is pending until it has run once. `DataMigration.run/4` runs a
+repeatable one again, and refuses to run a one-shot one twice. The dashboard
+page's "Migrate up" still runs a data migration once.
+
 Requires OTP 27+
 
 ### Screenshots
