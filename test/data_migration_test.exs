@@ -4,9 +4,7 @@ defmodule DataMigrationTest do
   # writer at a time, and every test here writes `schema_migrations`.
   use DataMigration.ConnCase, async: false
 
-  # `migration_lock: false`: the lock holds the sandbox's connection while the
-  # migrator runs `up/0` from a second process that needs it too.
-  @opts [migration_lock: false, log: false]
+  @opts [log: false]
 
   setup do
     listener = :"data_migration_test_#{System.unique_integer([:positive])}"
