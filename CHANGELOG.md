@@ -1,6 +1,6 @@
 # Changelog
 
-## unreleased
+## 0.2.0 (2026-10-05)
 
 - Add `DataMigration.pending/2`, which lists the data migrations that have not
   run, oldest first.
